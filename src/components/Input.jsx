@@ -1,111 +1,125 @@
 import axios from 'axios';
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import AsyncSelect from 'react-select/async';
 import makeAnimated from 'react-select/animated';
 
 function Input() {
     const BASE_URL = process.env.REACT_APP_BASE_URL;
-
-    const [noOptionText, setNoOptionText] = useState("Please enter character name");
-    // const [searchItems, setSearchItems] = useState(localStorage.getItem('searchItems') ? JSON.parse(localStorage.getItem('searchItems')) : []);
+    const [noOptionText, setNoOptionText] = useState("Please enter a character name");
     const animatedComponents = makeAnimated();
+    const [inputValue, setInputValue] = useState("");
+    const [typingTimer, setTypingTimer] = useState(null);
+    const [cache, setCache] = useState({});
 
-    const [cache, setCache] = useState([]);
-    const [pending, setPending] = useState(false);
-    let pendingSecond = 1000;
-    // {
-    //     label : "",
-    //     link : "",
-    //     result : []    
-    // } Formatında veri gelecek
+    const selectRef = useRef()
 
-    // function convertLink(text) {
-    //     return text.toLowerCase().replace(/\s+/g, '-');
-    // }
-
-    const options = [
-        // { value: 'chocolate', label: 'Chocolate' },
-        // { value: 'strawberry', label: 'Strawberry' },
-        // { value: 'vanilla', label: 'Vanilla' }
-    ]
+    const fetchData = async (inputValue) => {
+        try {
+            if (cache[inputValue]) {
+                return cache[inputValue];
+            } else {
+                const response = await axios.get(`${BASE_URL}?name=${inputValue}`);
+                const results = response.data.results;
+                setCache({ ...cache, [inputValue]: results });
+                localStorage.setItem("cache", JSON.stringify({ ...cache, [inputValue]: results }))
+                return results;
+            }
+        } catch (error) {
+            console.error("Error fetching data:", error);
+            return [];
+        }
+    };
 
     // useEffect(() => {
-    //     console.log(BASE_URL)
-    // }, []);
-    let typingTimer;
-    const typingInterval = 1000; // 1 saniye
+    //     console.log(selectRef.current)
 
-    // Kullanıcı yazmaya başladığında zamanlayıcıyı başlat
-    function startTypingTimer() {
+
+    //     document.addEventListener("keydown", handleKeyDown);
+    //     document.addEventListener("keyup", handleKeyUp);
+    //     return () => {
+    //         document.removeEventListener("keydown", handleKeyDown);
+    //         document.removeEventListener("keyup", handleKeyUp);
+    //     };
+    // }, [typingTimer]);
+
+    const handleKeyDown = () => {
         clearTimeout(typingTimer);
-        typingTimer = setTimeout(() => {
-            // Yazma süresinde değişiklik olmadı, kullanıcı yazmayı bitirdi
-            onTypingFinished();
-        }, typingInterval);
-    }
+    };
 
-    function resetTypingTimer() {
+    const handleKeyUp = (event) => {
         clearTimeout(typingTimer);
-        startTypingTimer();
-    }
+        const value = event.target.value.trim();
+        if (value === "") {
+            setNoOptionText("Please enter a character name");
+        } else {
+            setNoOptionText("Loading...");
+            setTypingTimer(setTimeout(() => {
+                fetchData(value).then((results) => {
+                    setNoOptionText(results.length ? "No options" : "No matching options found");
+                });
+            }, 1000)); // 1 saniye bekleme süresi
+        }
+    };
 
-    let changeFunction = (event) => {
-        resetTypingTimer();
-        setTimeout(async () => {
-            let val = event.target.value;
-            val === "" ? setNoOptionText("Please enter character name") : setNoOptionText("No options")
-        }, 10);
-    }
-    async function onTypingFinished(inputValue) {
-        let results = (await axios.get(BASE_URL + "?", `name=${inputValue}`)).data.results;
-        return results;
-    }
-    const promiseOptions = (inputValue) =>
-        new Promise(async (resolve) => {
-            // resolve();
-            if (inputValue !== "") {
-                if (pending === false) {
-                    // console.log(BASE_URL + `?name=${inputValue}`)
-                    let results = await onTypingFinished(inputValue);
-                    console.log(results)
-                    resolve([])
-                    // setPending(true);
-                    // setTimeout(() => {
-                    //     setPending(false);
-                    // }, pendingSecond);
-                }
+    const convertLink = (text) => {
+        return text.toLowerCase().replace(/\s+/g, '-');
+    };
 
+    const loadOptions = async (inputValue, callback) => {
+        setInputValue(inputValue.trim());
+
+        if (inputValue.trim() === "") {
+            setNoOptionText("Please enter a character name");
+            callback([]);
+        } else {
+            console.log("object")
+            setNoOptionText("Loading...");
+            const results = await fetchData(inputValue);
+
+            if (results && results.length > 0) {
+                let values = []
+                results.map((data, key) => values.push(
+                    {
+                        label: `${data.name}`,
+                        value: `${convertLink(data.name)}`,
+                        image: `${data.image}`
+                    }
+                ))
+                callback(values);
+                return;
+
+            } else {
+                setNoOptionText(results.length ? "No options" : "No matching options found");
+                return;
             }
-            else {
-                resolve([]);
-            }
+        }
+    };
 
-            // if (results != []) {
+    const formatOptionLabel = ({ value, label, image }) => (
+        <div style={{ display: "flex" }}>
+            <div>{label}</div>
+            <div style={{ marginLeft: "10px", color: "#ccc" }}>
+                <img src={image} alt="" />
+            </div>
+        </div>
+    );
 
-            // }
-        });
     return (
-        <>
-            <div className='multi-search-area'>
-                {/* <Select options={options} isMulti closeMenuOnSelect={true}
-                    components={animatedComponents}
-                    placeholder="Please enter character name"
-                    noOptionsMessage={() => noOptionText}
-                    // onInputChange={}
-                    onKeyDown={(event) => changeFunction(event)}
-                /> */}
+        <div className='multi-search-area'>
+            <div onKeyUp={handleKeyUp}>
                 <AsyncSelect
-                    isMulti
+                    ref={selectRef}
                     cacheOptions
                     defaultOptions
+                    formatOptionLabel={formatOptionLabel}
                     components={animatedComponents}
-                    placeholder="Please enter character name"
-                    loadOptions={promiseOptions}
+                    placeholder="Please enter a character name"
+                    loadOptions={loadOptions}
                     noOptionsMessage={() => noOptionText}
-                    onKeyDown={(event) => changeFunction(event)}
+                    onKeyDown={handleKeyDown}
                 />
             </div>
-        </>
+        </div>
     );
 }
 
