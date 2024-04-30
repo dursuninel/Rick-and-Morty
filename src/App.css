@@ -1,12 +1,22 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap');
+
 .App {
   background-color: #282c34;
   min-height: 100vh;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
 }
 
+h1 {
+  color: white;
+  font-size: 3rem;
+}
 
+*:not(img, svg, i) {
+  font-family: "Montserrat", sans-serif;
+}
 
 .multi-search-area {
   background-color: white;
@@ -14,4 +24,109 @@
   min-height: 30rem;
   padding: 1.25rem;
   width: 40rem;
+}
+
+.opt_style,
+.list_item_style {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+}
+
+.opt_style img {
+  width: 75px;
+  height: 75px;
+}
+
+.opt_style p {
+  font-weight: 600;
+  font-size: .85rem;
+  margin: 0;
+}
+
+.list_item_style {
+  position: relative;
+}
+
+.list_item_style img {
+  width: 100px;
+  height: 100px;
+}
+
+.list_in_infos {
+  display: flex;
+  flex-direction: column;
+}
+
+.list_in_infos>div {
+  display: flex;
+  gap: .5rem;
+}
+
+
+.list_in_infos p {
+  margin: 0;
+  font-weight: 600;
+  font-size: .95rem;
+}
+
+
+.list_in_infos span {
+  font-weight: 400;
+  font-size: .95rem;
+}
+
+.list_style {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 1rem;
+  max-height: 26rem;
+  overflow-y: auto;
+  padding: .5rem 1rem .5rem 0 !important;
+}
+
+.list_style>div {
+  width: calc(50% - .5rem);
+  border-radius: .95rem;
+  overflow: hidden;
+  box-shadow: 0 0 5px rgb(0, 0, 0, .10);
+  cursor: pointer;
+
+  transition: box-shadow 250ms;
+}
+
+.list_style>div:hover {
+  box-shadow: 0 0 5px rgb(0, 0, 0, .25);
+}
+
+
+.delete_list_item {
+  background-color: rgb(219, 11, 11);
+  width: 1.75rem;
+  height: 1.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  border-radius: .5rem;
+  cursor: pointer;
+  position: absolute;
+  right: .5rem;
+  bottom: .5rem;
+  font-size: .95rem;
+  opacity: 0;
+  visibility: hidden;
+
+  transition: background-color 250ms, opacity 250ms,
+    visibility 250ms;
+}
+
+.delete_list_item:hover {
+  background-color: rgb(183, 17, 17);
+}
+
+.list_style>div:hover .delete_list_item {
+  opacity: 1;
+  visibility: visible;
 }

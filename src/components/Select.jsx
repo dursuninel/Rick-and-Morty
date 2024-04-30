@@ -3,13 +3,14 @@ import React, { useState, useEffect, useRef } from 'react';
 import AsyncSelect from 'react-select/async';
 import makeAnimated from 'react-select/animated';
 
-function Input() {
+function Select({ listValues, setListValues }) {
     const BASE_URL = process.env.REACT_APP_BASE_URL;
     const [noOptionText, setNoOptionText] = useState("Please enter a character name");
     const animatedComponents = makeAnimated();
     const [inputValue, setInputValue] = useState("");
     const [typingTimer, setTypingTimer] = useState(null);
-    const [cache, setCache] = useState({});
+    const [cache, setCache] = useState(sessionStorage.getItem("cache") ? JSON.parse(sessionStorage.getItem("cache")) : {});
+
 
     const selectRef = useRef()
 
@@ -21,7 +22,7 @@ function Input() {
                 const response = await axios.get(`${BASE_URL}?name=${inputValue}`);
                 const results = response.data.results;
                 setCache({ ...cache, [inputValue]: results });
-                localStorage.setItem("cache", JSON.stringify({ ...cache, [inputValue]: results }))
+                sessionStorage.setItem("cache", JSON.stringify({ ...cache, [inputValue]: results }))
                 return results;
             }
         } catch (error) {
@@ -29,18 +30,6 @@ function Input() {
             return [];
         }
     };
-
-    // useEffect(() => {
-    //     console.log(selectRef.current)
-
-
-    //     document.addEventListener("keydown", handleKeyDown);
-    //     document.addEventListener("keyup", handleKeyUp);
-    //     return () => {
-    //         document.removeEventListener("keydown", handleKeyDown);
-    //         document.removeEventListener("keyup", handleKeyUp);
-    //     };
-    // }, [typingTimer]);
 
     const handleKeyDown = () => {
         clearTimeout(typingTimer);
@@ -72,7 +61,6 @@ function Input() {
             setNoOptionText("Please enter a character name");
             callback([]);
         } else {
-            console.log("object")
             setNoOptionText("Loading...");
             const results = await fetchData(inputValue);
 
@@ -80,9 +68,11 @@ function Input() {
                 let values = []
                 results.map((data, key) => values.push(
                     {
+                        id: `${data.id}`,
                         label: `${data.name}`,
                         value: `${convertLink(data.name)}`,
-                        image: `${data.image}`
+                        image: `${data.image}`,
+                        episode: data.episode.length
                     }
                 ))
                 callback(values);
@@ -95,32 +85,39 @@ function Input() {
         }
     };
 
-    const formatOptionLabel = ({ value, label, image }) => (
-        <div style={{ display: "flex" }}>
-            <div>{label}</div>
-            <div style={{ marginLeft: "10px", color: "#ccc" }}>
-                <img src={image} alt="" />
+    const formatOptionLabel = ({ value, label, image, episode }) => (
+        <div className='opt_style'>
+            <img src={image} alt="" />
+            <div>
+                <div className='opt_name'>
+                    <p>{label}</p>
+                </div>
             </div>
         </div>
     );
 
+    useEffect(() => {
+        setInputValue('')
+        sessionStorage.setItem("list", JSON.stringify(listValues))
+    }, [listValues]);
+
     return (
-        <div className='multi-search-area'>
-            <div onKeyUp={handleKeyUp}>
-                <AsyncSelect
-                    ref={selectRef}
-                    cacheOptions
-                    defaultOptions
-                    formatOptionLabel={formatOptionLabel}
-                    components={animatedComponents}
-                    placeholder="Please enter a character name"
-                    loadOptions={loadOptions}
-                    noOptionsMessage={() => noOptionText}
-                    onKeyDown={handleKeyDown}
-                />
-            </div>
+        <div onKeyUp={handleKeyUp}>
+            <AsyncSelect
+                ref={selectRef}
+                value={inputValue || ''}
+                cacheOptions
+                defaultOptions
+                formatOptionLabel={formatOptionLabel}
+                components={animatedComponents}
+                placeholder="Please enter a character name"
+                loadOptions={loadOptions}
+                noOptionsMessage={() => noOptionText}
+                onKeyDown={handleKeyDown}
+                onChange={(value) => setListValues([...listValues, value])}
+            />
         </div>
     );
 }
 
-export default Input;
+export default Select;
